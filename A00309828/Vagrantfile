@@ -1,0 +1,109 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.ssh.insert_key = false
+
+  #Servidor que almacena logs
+  config.vm.define :elasticsearch_server do |elasticsearch_server|
+    
+    elasticsearch_server.vm.box = "centos1706_v0.2.0"
+    
+    elasticsearch_server.vm.network :private_network, ip: "192.168.56.1"
+    
+    elasticsearch_server.vm.provider :virtualbox do |vb|
+      vb.customize ["modifyvm", :id, "--memory", "1024","--cpus", "1", "--name", "elasticsearch_server" ]
+    end
+
+    #Aprovisionador (Chef Solo)
+    config.vm.provision :chef_solo do |chef|
+      
+      chef.install = false
+     
+      chef.cookbooks_path = "cookbooks"
+      
+      chef.add_recipe "elasticsearch"
+      
+      chef.json = {"direccion_ip" => "192.168.56.1"}
+    end
+  end
+
+  #Servidor para kibana 
+  config.vm.define :kibana_server do |kibana_server|
+    
+    kibana_server.vm.box = "centos1706_v0.2.0"
+    
+    kibana_server.vm.network :private_network, ip: "192.168.56.2"
+    
+    kibana_server.vm.provider :virtualbox do |vb|
+      vb.customize ["modifyvm", :id, "--memory", "1024","--cpus", "1", "--name", "kibana_server" ]
+    end
+
+    #Aprovisionador (Chef Solo)
+    config.vm.provision :chef_solo do |chef|
+      
+      chef.install = false
+      
+      chef.cookbooks_path = "cookbooks"
+      
+      chef.add_recipe "kibana"
+      
+      chef.json = {"direccion_ip" => "192.168.56.2", "elasticsearch_url" => "http://192.168.56.1:9200"}
+
+    end
+
+
+  end
+
+  #Servidor para LogsTash 
+  config.vm.define :logstash_server do |logstash_server|
+    
+    logstash_server.vm.box = "centos1706_v0.2.0"
+    
+    logstash_server.vm.network :private_network, ip: "192.168.56.3"
+    
+    logstash_server.vm.provider :virtualbox do |vb|
+      vb.customize ["modifyvm", :id, "--memory", "1024","--cpus", "1", "--name", "logstash_server" ]
+    end
+
+    #Aprovisionador (Chef Solo)
+    config.vm.provision :chef_solo do |chef|
+      
+      chef.install = false
+      
+      chef.cookbooks_path = "cookbooks"
+      
+      chef.add_recipe "logstash"
+      
+      chef.json = {"direccion_ip" => "192.168.56.1"}
+    end
+  end
+
+  #Servidor para Filebeat 
+  config.vm.define :web_server do |web_server|
+
+    web_server.vm.box = "centos1706_v0.2.0"
+   
+    web_server.vm.network :private_network, ip: "192.168.56.4"
+    
+    web_server.vm.provider :virtualbox do |vb|
+      vb.customize ["modifyvm", :id, "--memory", "1024","--cpus", "1", "--name", "web_server" ]
+    end
+
+    #Aprovisionador (Chef Solo)
+    config.vm.provision :chef_solo do |chef|
+      
+      chef.install = false
+      
+      chef.cookbooks_path = "cookbooks"
+      
+      chef.add_recipe "httpd"
+      
+      chef.add_recipe "filebeat"
+      
+      chef.json = {"direccion_ip" => "192.168.56.3"}
+    end
+
+  end
+
+end
